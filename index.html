@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>宿舍电量查询</title>
+		<link rel="stylesheet" href="libs/css/all.min.css">
+    <script src="js/chart.umd.min.js"></script>
+    <style>
+            /* 保持原有样式不变 */
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+                font-family: 'Inter', system-ui, sans-serif;
+            }
+            
+            body {
+                background-color: #f9fafb;
+                min-height: 100vh;
+                color: #1e293b;
+                padding: 20px;
+            }
+            
+            .container {
+                max-width: 400px;
+                margin: 0 auto;
+                padding-bottom: 20px;
+            }
+            
+            header {
+                text-align: center;
+                margin-bottom: 30px;
+                padding-top: 10px;
+            }
+            
+            h1 {
+                font-size: 1.8rem;
+                font-weight: bold;
+                margin-bottom: 8px;
+                color: #1e293b;
+            }
+            
+            h2 {
+                font-size: 1.2rem;
+                font-weight: 600;
+                margin-bottom: 16px;
+                color: #1e293b;
+            }
+            
+            .text-neutral {
+                color: #64748b;
+            }
+            
+            .text-primary {
+                color: #3b82f6;
+            }
+            
+            .card {
+                background: white;
+                border-radius: 24px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                padding: 20px;
+                margin-bottom: 20px;
+                transition: all 0.3s ease;
+            }
+            
+            .card:hover {
+                box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            }
+            
+            .grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr;
+                gap: 15px;
+                margin-bottom: 15px;
+            }
+            
+            label {
+                display: block;
+                font-size: 0.875rem;
+                font-weight: 500;
+                color: #64748b;
+                margin-bottom: 5px;
+            }
+            
+            input {
+                width: 100%;
+                padding: 10px;
+                border: 1px solid #e2e8f0;
+                border-radius: 12px;
+                font-size: 1rem;
+            }
+            
+            input:focus {
+                outline: none;
+                border-color: #3b82f6;
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            }
+            
+            .param-display {
+                width: 100%;
+                padding: 10px;
+                background-color: #f1f5f9;
+                border-radius: 12px;
+                border: 1px solid #e2e8f0;
+                margin-bottom: 15px;
+            }
+            
+            .btn-primary {
+                width: 100%;
+                background-color: #3b82f6;
+                color: white;
+                font-weight: 500;
+                padding: 12px;
+                border: none;
+                border-radius: 12px;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: all 0.3s ease;
+            }
+            
+            .btn-primary:hover {
+                background-color: #2563eb;
+                transform: scale(1.02);
+            }
+            
+            .btn-secondary {
+                background-color: #f1f5f9;
+                color: #1e293b;
+                margin-right: 10px;
+            }
+            
+            .btn-secondary:hover {
+                background-color: #e2e8f0;
+            }
+            
+            .btn-group {
+                display: flex;
+                margin-bottom: 15px;
+            }
+            
+            .btn-primary i {
+                margin-right: 8px;
+            }
+            
+            .power-result {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                height: 120px;
+                border: 2px dashed #e2e8f0;
+                border-radius: 12px;
+                margin-bottom: 10px;
+            }
+            
+            .cache-info {
+                font-size: 0.8rem;
+                color: #64748b;
+                text-align: center;
+                margin-top: -8px;
+                margin-bottom: 10px;
+            }
+            
+
+            
+            .chart-container {
+                position: relative;
+                height: 250px;
+                margin-top: 15px;
+            }
+            
+            .loading {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: rgba(0, 0, 0, 0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 50;
+                display: none;
+            }
+            
+            .loading-content {
+                background-color: white;
+                padding: 20px;
+                border-radius: 12px;
+                text-align: center;
+            }
+            
+            /* 弹窗样式 */
+            .modal-overlay {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.5);
+                display: none;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+            }
+            
+            .modal-content {
+                background-color: white;
+                padding: 20px;
+                border-radius: 24px;
+                max-width: 400px;
+                width: 85%;
+                max-height: 70vh;
+                overflow-y: auto;
+                text-align: center;
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            }
+            
+            .spinner {
+                width: 40px;
+                height: 40px;
+                border: 4px solid #3b82f6;
+                border-top-color: transparent;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+                margin: 0 auto 15px;
+            }
+            
+            @keyframes spin {
+                to { transform: rotate(360deg); }
+            }
+            
+            .text-green-500 {
+                color: #10b981;
+            }
+            
+            .text-amber-500 {
+                color: #f59e0b;
+            }
+            
+            .text-red-500 {
+                color: #ef4444;
+            }
+            
+            .text-center {
+                text-align: center;
+            }
+            
+            .mb-2 {
+                margin-bottom: 8px;
+            }
+            
+            .mt-2 {
+                margin-top: 8px;
+            }
+            
+            .text-4xl {
+                font-size: 2.5rem;
+            }
+            
+            .text-5xl {
+                font-size: 3rem;
+            }
+            
+            .text-xl {
+                font-size: 1.25rem;
+            }
+            
+            .font-bold {
+                font-weight: 700;
+            }
+            
+            /* 右上角按钮样式 */
+            .header-right-btn {
+                position: absolute;
+                top: 10px;
+                right: 150px;
+                background-color: transparent;
+                color: transparent;
+                border: none;
+                border-radius: 12px;
+                padding: 8px 16px;
+                font-size: 14px;
+                cursor: pointer;
+                transition: background-color 0.3s;
+                box-shadow: none;
+            }
+            
+            /* 标题区域相对定位 */
+            header {
+                position: relative;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <!-- 标题区域 -->
+            <header>
+                <h1>
+                    <i class="fa fa-bolt text-primary mr-2"></i>江夏宿舍用电分析
+                </h1>
+                <p class="text-neutral">再也不用担心游戏打着打着黑幕了！</p>
+                <button id="showModalBtn" class="header-right-btn">
+                    <i class="fa fa-info-circle"></i>关于
+                </button>
+            </header>
+    
+            <!-- 输入区域 -->
+            <div class="card">
+                <h2>房间信息</h2>
+                <div class="grid">
+                    <div>
+                        <label for="building">楼号</label>
+                        <input type="number" id="building" min="1" value="32">
+                    </div>
+                    <div>
+                        <label for="floor">楼层</label>
+                        <input type="number" id="floor" min="1" value="1">
+                    </div>
+                    <div>
+                        <label for="room">房间号</label>
+                        <input type="number" id="room" min="1" value="999">
+                    </div>
+                </div>
+                
+                <div>
+                    <label>生成的参数</label>
+                    <div id="roomverify" class="param-display">
+                        1-32--1-999
+                    </div>
+                </div>
+                
+                <button id="queryBtn" class="btn-primary">
+                    <i class="fa fa-search"></i>获取电量
+                </button>
+            </div>
+    
+            <!-- 电量结果区域 -->
+            <div class="card">
+                <h2>剩余电量</h2>
+                <div id="powerResult" class="power-result">
+                    <p class="text-neutral text-center text-xl">
+                        点击上方按钮查询电量
+                    </p>
+                </div>
+                <div id="cacheInfo" class="cache-info"></div>
+            </div>
+    
+            <!-- 图表展示区域 -->
+            <div class="card">
+                <h2>近30天电量趋势</h2>
+                <div class="btn-group">
+                    <button id="lineChartBtn" class="btn-primary flex-1">
+                        <i class="fa fa-line-chart"></i> 折线图
+                    </button>
+                    <button id="barChartBtn" class="btn-primary btn-secondary flex-1">
+                        <i class="fa fa-bar-chart"></i> 柱形图
+                    </button>
+                </div>
+                <div class="chart-container">
+                    <canvas id="electricityChart"></canvas>
+                </div>
+                <p class="text-xs text-neutral text-center mt-2">
+                    * 图表展示最近30天的电量记录，每天仅保留一条数据
+                </p>
+            </div>
+    
+
+    
+            <!-- 欢迎弹窗 -->
+            <div id="courseModal" class="modal-overlay">
+                <div class="modal-content">
+                    <div id="modalContent">
+                        <!-- 弹窗内容将通过JavaScript动态设置 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 加载提示 -->
+            <div id="loading" class="loading">
+                <div class="loading-content">
+                    <div class="spinner"></div>
+                    <p>查询中，请稍候...</p>
+                </div>
+            </div>
+        </div>
+    
+        <script>
+            // 等待Chart.js和DOM完全加载
+            window.addEventListener('load', function() {
+                // 检查Chart是否加载成功
+                if (typeof Chart === 'undefined') {
+                    console.error('Chart.js加载失败，请检查网络连接');
+                    const chartContainer = document.querySelector('.chart-container');
+                    if (chartContainer) {
+                        chartContainer.innerHTML = '<p class="text-red-500 text-center">图表功能加载失败</p>';
+                    }
+                    return;
+                }
+    
+                // 安全获取DOM元素的函数
+                function getElementSafely(id) {
+                    const element = document.getElementById(id);
+                    if (!element) {
+                        console.warn(`DOM元素未找到: ${id}`);
+                    }
+                    return element;
+                }
+    
+                // 添加系统级返回功能
+                // 监听浏览器后退事件
+                window.addEventListener('popstate', function() {
+                    // 检查当前页面是否是二级界面
+                    if (window.location.pathname.endsWith('index.html')) {
+                        // 跳转到一级界面
+                        window.location.href = 'home.html';
+                        // 阻止默认后退行为
+                        event.preventDefault();
+                    }
+                });
+                
+                // 确保页面加载时历史栈正确
+                if (history.length <= 1) {
+                    // 如果历史栈中只有当前页面，添加一个home.html的历史记录
+                    history.pushState(null, null, 'home.html');
+                    // 然后立即替换为当前页面
+                    history.replaceState(null, null, 'index.html');
+                }
+    
+                // 获取所有DOM元素
+                const buildingInput = getElementSafely('building');
+                const floorInput = getElementSafely('floor');
+                const roomInput = getElementSafely('room');
+                const roomverifyEl = getElementSafely('roomverify');
+                const queryBtn = getElementSafely('queryBtn');
+                const powerResult = getElementSafely('powerResult');
+
+                const loading = getElementSafely('loading');
+                const cacheInfo = getElementSafely('cacheInfo');
+                const lineChartBtn = getElementSafely('lineChartBtn');
+                const barChartBtn = getElementSafely('barChartBtn');
+                const canvasElement = getElementSafely('electricityChart');
+                const ctx = canvasElement ? canvasElement.getContext('2d') : null;
+                const courseModal = getElementSafely('courseModal');
+                const modalContent = getElementSafely('modalContent');
+                const showModalBtn = getElementSafely('showModalBtn');
+                
+                // 点击计数器
+                let queryClickCount = parseInt(localStorage.getItem('queryClickCount') || '0');
+    
+                // 图表实例
+                let electricityChart = null;
+    
+                // 检查关键元素是否存在
+                if (!buildingInput || !floorInput || !roomInput || !queryBtn || !powerResult || !ctx) {
+                    console.error('关键DOM元素缺失，应用无法正常运行');
+                    if (powerResult) {
+                        powerResult.innerHTML = '<p class="text-red-500 text-center">应用加载失败，请检查配置</p>';
+                    }
+                    return;
+                }
+    
+                // 生成唯一标识（基于房间信息）
+                function getRoomKey() {
+                    const building = buildingInput.value || '32';
+                    const floor = floorInput.value || '1';
+                    const room = roomInput.value || '999';
+                    return `electricity_${building}_${floor}_${room}`;
+                }
+    
+                // 1. 历史数据管理
+                function saveHistoryData(quantity) {
+                    try {
+                        const roomKey = getRoomKey();
+                        const today = new Date().toISOString().split('T')[0];
+                        
+                        // 使用uni.setStorageSync兼容HBuilder环境
+                        let history = [];
+                        try {
+                            // 优先尝试UniApp的存储API
+                            history = uni.getStorageSync(roomKey) || [];
+                        } catch (e) {
+                            // 兼容普通浏览器环境
+                            history = JSON.parse(localStorage.getItem(roomKey) || '[]');
+                        }
+                        
+                        // 过滤30天前的数据
+                        const thirtyDaysAgo = new Date();
+                        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                        history = history.filter(item => new Date(item.date) >= thirtyDaysAgo);
+                        
+                        // 替换当天数据
+                        const todayIndex = history.findIndex(item => item.date === today);
+                        if (todayIndex > -1) {
+                            history[todayIndex] = { date: today, quantity: parseFloat(quantity) };
+                        } else {
+                            history.push({ date: today, quantity: parseFloat(quantity) });
+                        }
+                        
+                        // 排序并保存
+                        history.sort((a, b) => new Date(a.date) - new Date(b.date));
+                        
+                        try {
+                            uni.setStorageSync(roomKey, history);
+                        } catch (e) {
+                            localStorage.setItem(roomKey, JSON.stringify(history));
+                        }
+                        
+                        updateChart();
+                    } catch (e) {
+                        console.error('保存历史数据失败', e);
+                    }
+                }
+    
+                // 获取历史数据
+                function getHistoryData() {
+                    const roomKey = getRoomKey();
+                    try {
+                        return uni.getStorageSync(roomKey) || [];
+                    } catch (e) {
+                        return JSON.parse(localStorage.getItem(roomKey) || '[]');
+                    }
+                }
+    
+                // 2. 图表生成
+                function updateChart(type = 'line') {
+                    // 检查按钮元素是否存在再操作
+                    if (lineChartBtn && barChartBtn) {
+                        if (type === 'line') {
+                            lineChartBtn.classList.remove('btn-secondary');
+                            barChartBtn.classList.add('btn-secondary');
+                        } else {
+                            lineChartBtn.classList.add('btn-secondary');
+                            barChartBtn.classList.remove('btn-secondary');
+                        }
+                    }
+                    
+                    const history = getHistoryData();
+                    
+                    // 清除旧图表
+                    if (electricityChart) {
+                        electricityChart.destroy();
+                        electricityChart = null;
+                    }
+                    
+                    // 没有数据时显示提示
+                    if (history.length === 0) {
+                        if (ctx && canvasElement) {
+                            ctx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+                            ctx.fillStyle = '#64748b';
+                            ctx.textAlign = 'center';
+                            ctx.fillText('暂无历史数据', canvasElement.width / 2, canvasElement.height / 2);
+                        }
+                        return;
+                    }
+                    
+                    // 准备图表数据
+                    const labels = history.map(item => {
+                        const date = new Date(item.date);
+                        return `${date.getMonth() + 1}/${date.getDate()}`;
+                    });
+                    const data = history.map(item => item.quantity);
+    
+                    // 创建新图表
+                    electricityChart = new Chart(ctx, {
+                        type: type,
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: '剩余电量（度）',
+                                data: data,
+                                borderColor: '#3b82f6',
+                                backgroundColor: type === 'bar' ? 'rgba(59, 130, 246, 0.6)' : 'transparent',
+                                borderWidth: 2,
+                                tension: 0.3,
+                                pointBackgroundColor: '#3b82f6',
+                                pointRadius: 4,
+                                pointHoverRadius: 6
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'top',
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return `电量: ${context.raw} 度`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: {
+                                        display: true,
+                                        text: '剩余电量（度）'
+                                    }
+                                },
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: '日期'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+    
+                // 3. 楼号映射和参数更新
+                function getMappedBuilding(inputBuilding) {
+                    const num = parseInt(inputBuilding, 10);
+                    if (num >= 1 && num <= 13) {
+                        return num + 27;
+                    }
+                    return inputBuilding;
+                }
+    
+                function updateRoomverify() {
+                    if (!roomverifyEl) return;
+                    
+                    const inputBuilding = buildingInput.value || '32';
+                    const floor = floorInput.value || '1';
+                    const room = roomInput.value || '999';
+                    const mappedBuilding = getMappedBuilding(inputBuilding);
+                    roomverifyEl.textContent = `1-${mappedBuilding}--${floor}-${room}`;
+                    
+                    // 更新图表
+                    updateChart('line');
+                }
+    
+                // 4. 电量查询和显示
+                function displayPowerInfo(data) {
+                    if (!powerResult) return;
+                    
+                    let powerInfo = '';
+                    if (data.returncode === 'SUCCESS' && data.businessData && data.businessData.quantity !== undefined) {
+                        saveHistoryData(data.businessData.quantity);
+                        
+                        powerInfo = `
+                            <div class="text-center">
+                                <span class="text-5xl font-bold text-primary">${data.businessData.quantity}</span>
+                                <span class="text-xl text-neutral ml-1">${data.businessData.quantityunit || '度'}</span>
+                                <p class="mt-2 text-green-500"><i class="fa fa-check-circle"></i> ${data.returnmsg || '查询成功'}</p>
+                            </div>
+                        `;
+                    } else {
+                        const errorDetails = data.businessData ? JSON.stringify(data.businessData) : '无详细信息';
+                        powerInfo = `
+                            <p class="text-neutral text-center">
+                                <i class="fa fa-exclamation-triangle text-amber-500 text-4xl mb-2 block"></i>
+                                查询失败<br>
+                                ${data.returnmsg || '请检查房间信息'}
+                                <br><small class="text-xs mt-1 block">${errorDetails}</small>
+                            </p>
+                        `;
+                    }
+                    powerResult.innerHTML = powerInfo;
+                }
+    
+                // 5. 事件监听（先检查元素是否存在）
+                if (buildingInput) buildingInput.addEventListener('input', updateRoomverify);
+                if (floorInput) floorInput.addEventListener('input', updateRoomverify);
+                if (roomInput) roomInput.addEventListener('input', updateRoomverify);
+                
+                if (lineChartBtn) {
+                    lineChartBtn.addEventListener('click', () => {
+                        updateChart('line');
+                    });
+                }
+                
+                if (barChartBtn) {
+                    barChartBtn.addEventListener('click', () => {
+                        updateChart('bar');
+                    });
+                }
+                
+                if (showModalBtn) {
+                    showModalBtn.addEventListener('click', () => {
+                        showWelcomeModal();
+                    });
+                }
+    
+                if (queryBtn) {
+                    queryBtn.addEventListener('click', async () => {
+                        // 增加点击计数
+                        queryClickCount++;
+                        localStorage.setItem('queryClickCount', queryClickCount.toString());
+                        
+                        // 检查是否达到10次点击
+                        if (queryClickCount >= 10) {
+                            showWelcomeModal();
+                        }
+                        
+                        if (loading) loading.style.display = 'flex';
+                        if (powerResult) {
+                            powerResult.innerHTML = '<p class="text-neutral text-center"><i class="fa fa-circle-o-notch fa-spin text-4xl mb-2 block"></i>查询中...</p>';
+                        }
+                        if (cacheInfo) cacheInfo.textContent = '';
+                        
+                        try {
+                            const inputBuilding = buildingInput.value || '32';
+                            const mappedBuilding = getMappedBuilding(inputBuilding);
+                            const roomverify = `1-${mappedBuilding}--${floorInput.value || '1'}-${roomInput.value || '999'}`;
+                            
+                            const params = {
+                                "payProId": "807",
+                                "schoolcode": "2515",
+                                "businesstype": "2",
+                                "roomverify": roomverify
+                            };
+                            
+                            const payload = {
+                                "method": "samllProgramGetRoomState",
+                                "bizcontent": JSON.stringify(params)
+                            };
+
+                            const response = await fetch("https://cloudpaygateway.59wanmei.com/paygateway/smallpaygateway/trade", {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(payload),
+                                mode: 'cors',
+                                credentials: 'omit'
+                            });
+
+                            const data = await response.json();
+
+                            displayPowerInfo(data);
+                            if (cacheInfo) {
+                                cacheInfo.textContent = `✅ 已更新数据（${new Date().toLocaleString()}）`;
+                            }
+                            // 保存房间信息
+                            saveRoomInfo();
+                            
+                        } catch (error) {
+                            if (powerResult) {
+                                powerResult.innerHTML = `
+                                    <p class="text-neutral text-center">
+                                        <i class="fa fa-times-circle text-red-500 text-4xl mb-2 block"></i>
+                                        查询失败<br>
+                                        请检查网络连接
+                                    </p>
+                                `;
+                            }
+
+                        } finally {
+                            if (loading) loading.style.display = 'none';
+                        }
+                    });
+                }
+    
+                // 保存房间信息到本地存储
+                function saveRoomInfo() {
+                    try {
+                        const roomInfo = {
+                            building: buildingInput.value || '32',
+                            floor: floorInput.value || '1',
+                            room: roomInput.value || '999'
+                        };
+                        try {
+                            uni.setStorageSync('lastRoomInfo', roomInfo);
+                        } catch (e) {
+                            localStorage.setItem('lastRoomInfo', JSON.stringify(roomInfo));
+                        }
+                    } catch (e) {
+                        console.error('保存房间信息失败', e);
+                    }
+                }
+    
+
+    
+
+    
+                // 从本地存储加载房间信息
+                function loadRoomInfo() {
+                    try {
+                        let roomInfo;
+                        try {
+                            roomInfo = uni.getStorageSync('lastRoomInfo');
+                        } catch (e) {
+                            roomInfo = JSON.parse(localStorage.getItem('lastRoomInfo') || 'null');
+                        }
+                        if (roomInfo && buildingInput && floorInput && roomInput) {
+                            buildingInput.value = roomInfo.building || '32';
+                            floorInput.value = roomInfo.floor || '1';
+                            roomInput.value = roomInfo.room || '999';
+                        }
+                    } catch (e) {
+                        console.error('加载房间信息失败', e);
+                    }
+                }
+                
+                // 显示欢迎弹窗
+                function showWelcomeModal() {
+                    // 设置弹窗内容为欢迎信息和图片 
+                    modalContent.innerHTML = ` 
+                        <div> 
+                            <h3 class="text-2xl font-bold text-neutral-800 text-center">欢迎使用江夏专属课表</h3> 
+                            <p class="text-neutral-600 text-center">制作不易，如果可以的话请作者喝杯可乐吧！</p> 
+                        </div>                    
+                        <div class="flex justify-center items-center"> 
+                            <img src="img/1.png" alt="欢迎使用课程表" class="max-w-full h-auto width="200" height="200" /> 
+                        </div> 
+                        <div> 
+                            <p class="text-neutral-600 text-center">加入 QQ群获取更新信息：1048514300</p> 
+                        </div> 
+                    `; 
+                    
+                    // 添加标记表明这是首次进入弹窗，并初始化点击计数器 
+                    courseModal.setAttribute('data-is-welcome-modal', 'true'); 
+                    courseModal.setAttribute('data-click-count', '0'); 
+                    
+                    // 显示弹窗
+                    courseModal.style.display = 'flex';
+                }
+                
+                // 关闭欢迎弹窗
+                function closeWelcomeModal() {
+                    // 重置点击计数器
+                    queryClickCount = 0;
+                    localStorage.setItem('queryClickCount', '0');
+                    
+                    // 隐藏弹窗
+                    courseModal.style.display = 'none';
+                    
+                    // 移除标记
+                    courseModal.removeAttribute('data-is-welcome-modal');
+                    courseModal.removeAttribute('data-click-count');
+                }
+                
+                // 弹窗外部点击事件处理
+                function handleModalOverlayClick(event) {
+                    if (event.target === courseModal) {
+                        const currentClickCount = parseInt(courseModal.getAttribute('data-click-count') || '0');
+                        const newClickCount = currentClickCount + 1;
+                        courseModal.setAttribute('data-click-count', newClickCount.toString());
+                        
+                        // 如果点击次数达到3次，关闭弹窗
+                        if (newClickCount >= 3) {
+                            closeWelcomeModal();
+                        }
+                    }
+                }
+    
+
+                
+                // 初始化
+                loadRoomInfo();
+                updateRoomverify();
+                updateChart();
+                
+                // 添加弹窗点击事件监听
+                if (courseModal) {
+                    courseModal.addEventListener('click', handleModalOverlayClick);
+                }
+            });
+        </script>
+    </body>
+    </html>
