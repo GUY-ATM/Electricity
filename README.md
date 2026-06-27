@@ -4,6 +4,7 @@
 
 一个简洁高效的宿舍电量查询与数据分析应用
 
+
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Android%20%7C%20iOS-lightgrey.svg)](https://github.com)
 
